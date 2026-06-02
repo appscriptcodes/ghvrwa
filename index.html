@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Global Hillview – Society Portal</title>
+
+  <!-- ── CDN Dependencies ── -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- ── Backend URL ── -->
+  <script>
+    window.ENV_GAS_URL = "https://script.google.com/macros/s/AKfycbzdQXg9lDXfb2ICJMufzqElNIHzjmH3n_OjDlvMbqlnq_0XOivfzwp6Ds2twYYw_YoZ8g/exec";
+  </script>
+
+  <!-- ── Styles ── -->
+  <link rel="stylesheet" href="styles.css" />
+
+</head>
+<body class="bg-gray-50">
+  <!-- Loading skeleton shown before React mounts -->
+  <div id="root">
+    <div class="min-h-screen flex items-center justify-center">
+      <div class="text-center">
+        <div class="spinner mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    ═══════════════════════════════════════════════════
+    MODULE LOAD ORDER
+    Each file is a self-contained unit. Load utils.js
+    first (globals), then page components, then App.js.
+    ═══════════════════════════════════════════════════
+
+    Module               Contents
+    ─────────────────    ────────────────────────────────────────────────
+    utils.js             Config, API client, helpers, hooks, shared UI
+    LoginScreen-         LoginScreen component
+      Dashboard.js       Dashboard component
+    DirectoryPage.js     DirectoryPage + DirectoryModal
+    NoticesPage.js       NoticesPage + NoticeViewModal + NoticeModal
+    IssuesPage.js        IssuesPage + IssueViewModal + IssueModal + AddIssueModal
+    TransactionsPage.js  TransactionsPage + TransactionViewModal + TransactionModal
+    DocumentsPage-       DocumentsPage + DocumentViewModal + DocumentModal
+      TenantsPage.js     TenantsPage + TenantViewModal + TenantModal
+    Chatbot-             Chatbot widget
+      GenericTable.js    GenericTable fallback component
+    App.js               ChangePasswordModal + App shell + Boot entry point
+  -->
+
+  <script type="text/babel" src="utils.js"></script>
+  <script src="residents_static.js"></script>
+  <script type="text/babel" src="ResidentsPage.js"></script>
+  <script type="text/babel" src="ChequesPage.js"></script>
+  <script type="text/babel" src="ImprestPage.js"></script>
+  <script type="text/babel" src="BudgetPage.js"></script>
+  <script type="text/babel" src="LoginScreen-Dashboard.js"></script>
+  <script type="text/babel" src="DirectoryPage.js"></script>
+  <script type="text/babel" src="NoticesPage.js"></script>
+  <script type="text/babel" src="IssuesPage.js"></script>
+  <script type="text/babel" src="TransactionsPage.js"></script>
+  <script type="text/babel" src="DocumentsPage-TenantsPage.js"></script>
+  <script type="text/babel" src="Chatbot-GenericTable.js"></script>
+  <script type="text/babel" src="DefaultersPage.js"></script>
+  <script type="text/babel" src="App.js"></script>
+
+</body>
+</html>
