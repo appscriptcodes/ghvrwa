@@ -22,7 +22,7 @@ hillview-portal/
 | File | What it contains |
 |---|---|
 | `styles.css` | CSS custom properties (light/dark themes), base element styles, dark mode overrides, status badges, animations |
-| `utils.js` | `GAS` URL config, `INR` formatter, tower/flat config, `formatDateDisplay`, `driveDirectLink`, `ExcelExport`, `showToast`, `fetchWithTimeout`, `getJSON`, `postPlain`, `api` client, `maybeUploadField`, `useDarkMode` hook, `ThemeToggle`, `ExportButton` |
+| `utils.js` | backend URL config, `INR` formatter, tower/flat config, `formatDateDisplay`, `driveDirectLink`, `ExcelExport`, `showToast`, `fetchWithTimeout`, `getJSON`, `postPlain`, `api` client, `maybeUploadField`, `useDarkMode` hook, `ThemeToggle`, `ExportButton` |
 | `LoginScreen-Dashboard.js` | `LoginScreen` (sign-in form), `Dashboard` (stat cards + recent notices/issues) |
 | `DirectoryPage.js` | `DirectoryPage` (filterable table with dept stats), `DirectoryModal` (add/edit employee with photo upload) |
 | `NoticesPage.js` | `NoticesPage` (searchable table), `NoticeViewModal`, `NoticeModal` (add/edit with attachment) |

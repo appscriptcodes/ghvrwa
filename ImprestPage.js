@@ -399,7 +399,7 @@ function ImprestPage({ gasData, onDataChange }) {
     try {
       const res = await api.list.Imprest();
       onDataChange(res?.rows || []);
-      showToast('Imprest refreshed from Google Sheet', 'success');
+      showToast('Imprest refreshed from database', 'success');
     } catch (e) {
       showToast('Could not refresh: ' + e.message, 'error');
     } finally { setSaving(false); }
@@ -451,7 +451,7 @@ function ImprestPage({ gasData, onDataChange }) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <div className="spinner" style={{ width: '36px', height: '36px', borderWidth: '3px' }} />
-        <p className="text-sm text-gray-500">Loading imprest data from Google Sheet…</p>
+        <p className="text-sm text-gray-500">Loading imprest data from database…</p>
       </div>
     );
   }
@@ -473,7 +473,7 @@ function ImprestPage({ gasData, onDataChange }) {
             </button>
           ))}
           <ExportButton data={filtered} filename="Imprest" />
-          <button onClick={fetchImprest} disabled={saving} title="Refresh from Google Sheet"
+          <button onClick={fetchImprest} disabled={saving} title="Refresh from database"
             className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 p-2 rounded-lg transition-colors disabled:opacity-50">
             <svg className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"

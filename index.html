@@ -14,7 +14,9 @@
 
   <!-- ── Backend URL ── -->
   <script>
-    window.ENV_GAS_URL = "https://script.google.com/macros/s/AKfycbzdQXg9lDXfb2ICJMufzqElNIHzjmH3n_OjDlvMbqlnq_0XOivfzwp6Ds2twYYw_YoZ8g/exec";
+    window.SUPABASE_URL = "https://htubxnqlalgmktvjphex.supabase.co";
+    window.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_eZThw1S2MOut6qXg6JAMSg_cA3MH86p";
+    window.SUPABASE_UPLOAD_BUCKET = "portal-uploads";
   </script>
 
   <!-- ── Styles ── -->
@@ -35,13 +37,13 @@
   <!--
     ═══════════════════════════════════════════════════
     MODULE LOAD ORDER
-    Each file is a self-contained unit. Load utils.js
+    Each file is a self-contained unit. Load utils_supabase.js
     first (globals), then page components, then App.js.
     ═══════════════════════════════════════════════════
 
     Module               Contents
     ─────────────────    ────────────────────────────────────────────────
-    utils.js             Config, API client, helpers, hooks, shared UI
+    utils_supabase.js    Supabase config, API client, helpers, hooks, shared UI
     LoginScreen-         LoginScreen component
       Dashboard.js       Dashboard component
     DirectoryPage.js     DirectoryPage + DirectoryModal
@@ -55,7 +57,7 @@
     App.js               ChangePasswordModal + App shell + Boot entry point
   -->
 
-  <script type="text/babel" src="utils.js"></script>
+  <script type="text/babel" src="utils_supabase.js"></script>
   <script src="residents_static.js"></script>
   <script type="text/babel" src="ResidentsPage.js"></script>
   <script type="text/babel" src="ChequesPage.js"></script>

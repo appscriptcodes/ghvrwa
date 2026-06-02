@@ -12,8 +12,39 @@
    =================================================== */
 
 /* ── Updated Auto-categoriser using new Column Data ── */
+const VENDOR_CATEGORY_RULES = [
+  { match: 'TEAMWORKS', vendor: 'TEAMWORKS', category: 'Secuirty' },
+  { match: 'TEAM WORKS', vendor: 'TEAMWORKS', category: 'Secuirty' },
+  { match: 'NOBROKER', vendor: 'NOBROKER', category: 'Events' },
+  { match: 'NO BROKER', vendor: 'NOBROKER', category: 'Events' },
+  { match: 'EASEBUZZ', vendor: 'EASEBUZZ', category: 'CAM' },
+  { match: 'ENVIRO', vendor: 'ENVIRO', category: 'ENVIRO' },
+  { match: 'SHIWAJI PETRO', vendor: 'SHIWAJI PETRO', category: 'Diesel' },
+  { match: 'PARKSMART', vendor: 'PARKSMART', category: 'Boom Barrier' },
+  { match: 'PARK SMART', vendor: 'PARKSMART', category: 'Boom Barrier' },
+  { match: 'DAKSHIN HARYANA BIJLI VITRAN NIGAM', vendor: 'DAKSHIN HARYANA BIJLI VITRAN NIGAM', category: 'Electricity Bill' },
+  { match: 'DHBVN', vendor: 'DAKSHIN HARYANA BIJLI VITRAN NIGAM', category: 'Electricity Bill' },
+  { match: 'KAMAL MOTORS', vendor: 'KAMAL MOTORS', category: 'Diesel' },
+  { match: 'INN4SMART', vendor: 'INN4SMART', category: 'Smart Meters App' },
+  { match: 'SHRI GANPATI PIPES', vendor: 'SHRI GANPATI PIPES', category: 'Plumbing Spares Parts' },
+];
+
+function vendorRuleForText(text) {
+  const haystack = String(text || '').toUpperCase();
+  return VENDOR_CATEGORY_RULES.find(rule => haystack.includes(rule.match));
+}
+
+function applyVendorCategory(row) {
+  const text = [row.Narration, row.Description, row.Party, row.Vendor].filter(Boolean).join(' ');
+  const rule = vendorRuleForText(text);
+  if (!rule) return row;
+  return { ...row, Vendor: row.Vendor || rule.vendor, Category: rule.category };
+}
+
 function autoCategory(narration, type) {
   const n = (narration || '').toUpperCase();
+  const vendorRule = vendorRuleForText(n);
+  if (vendorRule) return vendorRule.category;
   // Credits
   if (type === 'Credit') {
     if (n.includes('EASEBUZZ'))                        return 'Maintenance Collection';
@@ -155,7 +186,7 @@ function parseBankStatement(workbook) {
     const amt = parseFloat(String(row['Amount'] || row['Withdrawal Amt.'] || row['Deposit Amt.'] || '0').replace(/,/g,'')) || 0;
     const resolvedType = row['Type'] || (parseFloat(row['Deposit Amt.']) > 0 ? 'Credit' : 'Debit');
 
-    out.push({
+    const parsedRow = {
       'Serial Number':   row['Serial Number'] || String(i - headerIdx),
       'Date':            normalizedDate,
       'Type':            resolvedType,
@@ -173,7 +204,8 @@ function parseBankStatement(workbook) {
       'Month':           String(derivedMonth),
       'Value Date':      normDate(row['Value Dt'] || rawDate),
       'Closing Balance': parseFloat(String(row['Closing Balance'] || '0').replace(/,/g,'')) || 0
-    });
+    };
+    out.push(applyVendorCategory(parsedRow));
   }
   return out;
 }
@@ -461,6 +493,7 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
   const [filterYear, setFilterYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showVendorConfig, setShowVendorConfig] = useState(false);
   
   // Custom date range filters
   const [fromDate, setFromDate] = useState('');
@@ -478,6 +511,7 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
   const [importError, setImportError] = useState('');
   const [importProgress, setImportProgress] = useState(0);
   const fileRef = useRef(null);
+  data = useMemo(() => (data || []).map(applyVendorCategory), [data]);
 
   /* ── Helper: Get Indian Financial Year from date ── */
   function getIndianFY(dateStr) {
@@ -568,11 +602,26 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
   const filtered = useMemo(() => {
     return data.filter(t => {
       // Search Filter
-      const s = search.toLowerCase();
-      const matchesSearch = !search || 
-        (t.Narration || t.Description || '').toLowerCase().includes(s) ||
-        (t.Party || '').toLowerCase().includes(s) ||
-        (t.Category || '').toLowerCase().includes(s);
+      const s = search.trim().toLowerCase();
+      const searchableValues = [
+        t.Date,
+        t.Narration,
+        t.Description,
+        t.Vendor,
+        t.Party,
+        t.Type,
+        t.Amount,
+        t.Category,
+        t['Closing Balance'],
+        t['Chq/Ref No'],
+        t['Chq/Ref Number'],
+        t['Ref No'],
+        t['Ref/Invoice'],
+        t['Cost Center'],
+        t['Payment Mode'],
+      ];
+      const matchesSearch = !s || searchableValues
+        .some(value => String(value || '').toLowerCase().includes(s));
 
       // Type Filter
       const matchesType = !typeFilter || t.Type?.toLowerCase() === typeFilter.toLowerCase();
@@ -716,6 +765,41 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
     setFilterYear(''); setFilterMonth(''); setTypeFilter(null); setSearch(''); setFromDate(''); setToDate(''); setFilterIndianFY('');
   }
 
+  async function applyVendorConfig({ matchText, vendor, category }) {
+    const needle = String(matchText || '').trim().toUpperCase();
+    const vendorName = String(vendor || '').trim();
+    const categoryName = String(category || '').trim();
+    if (!needle || !vendorName || !categoryName) {
+      showToast('Match text, vendor, and category are required', 'error');
+      return;
+    }
+
+    const matchingRows = data.filter(row => {
+      const text = [row.Narration, row.Description, row.Party, row.Vendor].filter(Boolean).join(' ').toUpperCase();
+      return text.includes(needle);
+    });
+
+    if (!matchingRows.length) {
+      showToast('No matching transactions found', 'error');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      for (const row of matchingRows) {
+        const updated = { ...row, Vendor: vendorName, Category: categoryName };
+        await api.upsertRow('Transactions', 'Serial Number', updated);
+      }
+      await onRefresh();
+      setShowVendorConfig(false);
+      showToast(`Updated ${matchingRows.length} transaction${matchingRows.length === 1 ? '' : 's'}`, 'success');
+    } catch (e) {
+      showToast('Failed: ' + String(e), 'error');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="space-y-5 fade-in">
 
@@ -725,6 +809,15 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
           step={importStep} rows={importRows} progress={importProgress} error={importError}
           onClear={() => doImport(true)} onAppend={() => doImport(false)}
           onCancel={() => { setImportStep('idle'); setImportRows([]); setImportError(''); }}
+        />
+      )}
+
+      {showVendorConfig && (
+        <VendorConfigModal
+          rules={VENDOR_CATEGORY_RULES}
+          uploading={uploading}
+          onClose={() => setShowVendorConfig(false)}
+          onApply={applyVendorConfig}
         />
       )}
 
@@ -848,6 +941,15 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
 
               {isAdmin && (
                 <>
+                  <button onClick={() => setShowVendorConfig(true)}
+                    className="bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 flex items-center gap-1.5 text-sm transition-colors"
+                    title="Configure vendor category mapping">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.573c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.573c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.065z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Vendor Config
+                  </button>
                   <button onClick={() => fileRef.current?.click()}
                     className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 flex items-center gap-1.5 text-sm transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1476,6 +1578,86 @@ function ChequeReconciliation({ data }) {
   );
 }
 
+function VendorConfigModal({ rules, uploading, onClose, onApply }) {
+  const { useState } = React;
+  const [selected, setSelected] = useState('');
+  const [matchText, setMatchText] = useState('');
+  const [vendor, setVendor] = useState('');
+  const [category, setCategory] = useState('');
+
+  function chooseRule(value) {
+    setSelected(value);
+    const rule = rules.find(r => r.match === value);
+    if (!rule) return;
+    setMatchText(rule.match);
+    setVendor(rule.vendor);
+    setCategory(rule.category);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">Vendor Configuration</h3>
+          <button onClick={onClose} disabled={uploading} className="text-gray-400 hover:text-gray-600 disabled:opacity-50">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Preset vendor rule</label>
+            <select value={selected} onChange={e => chooseRule(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              <option value="">Custom rule</option>
+              {rules.map((rule, i) => (
+                <option key={`${rule.match}-${i}`} value={rule.match}>
+                  {rule.match} -> {rule.vendor} / {rule.category}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Match text in entry</label>
+            <input type="text" value={matchText} onChange={e => setMatchText(e.target.value)}
+              placeholder="Example: TEAMWORKS"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Vendor name</label>
+              <input type="text" value={vendor} onChange={e => setVendor(e.target.value)}
+                placeholder="Example: TEAMWORKS"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+              <input type="text" value={category} onChange={e => setCategory(e.target.value)}
+                placeholder="Example: Secuirty"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
+            </div>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
+            Matching transactions will be updated with this vendor and category. Future imports also use the built-in vendor rules.
+          </div>
+        </div>
+        <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} disabled={uploading}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={() => onApply({ matchText, vendor, category })} disabled={uploading}
+            className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2">
+            {uploading && <div className="spinner" style={{width:'14px',height:'14px',borderWidth:'2px'}}/>}
+            {uploading ? 'Applying...' : 'Apply to Matching Entries'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════
    TransactionViewModal
    ═══════════════════════════════════════════════════════════ */
@@ -1530,7 +1712,7 @@ function TransactionModal({ row, chartOfAccounts, uploading, onClose, onSave }) 
     Date: new Date().toISOString().split('T')[0],
     Narration:'', Description:'', Type:'Credit',
     'Deposit Amt':'', 'Withdrawal Amt':'',
-    Amount:'', Category:'', 'Chq/Ref No':'',
+    Amount:'', Vendor:'', Category:'', 'Chq/Ref No':'',
     'Value Date':'', 'Closing Balance':'', Attachment:''
   });
   const set = (k,v) => setFd(p=>({...p,[k]:v}));
@@ -1578,11 +1760,17 @@ function TransactionModal({ row, chartOfAccounts, uploading, onClose, onSave }) 
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
-              <select value={fd.Category} onChange={e=>set('Category',e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <option value="">Auto / Select</option>
-                {categories.map((c,i)=><option key={i} value={c.Category}>{c.Category}</option>)}
-              </select>
+              <input type="text" value={fd.Category||''} onChange={e=>set('Category',e.target.value)}
+                list="transaction-category-options"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
+              <datalist id="transaction-category-options">
+                {categories.map((c,i)=><option key={i} value={c.Category}/>)}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Vendor</label>
+              <input type="text" value={fd.Vendor||''} onChange={e=>set('Vendor',e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Chq / Ref No</label>

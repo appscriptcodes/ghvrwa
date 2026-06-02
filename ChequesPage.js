@@ -146,7 +146,7 @@ function ChequesBulkUploadModal({ onClose, onImport }) {
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'680px'}}>
         <div className="p-5 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Bulk Import Cheques</h3>
-          <p className="text-sm text-gray-500 mt-0.5">Upload your billing Excel/CSV — data saves to Google Sheet.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Upload your billing Excel/CSV — data saves to the database.</p>
         </div>
         <div className="p-5 space-y-5">
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 space-y-1">
@@ -495,7 +495,7 @@ function ChequesPage({ gasData, onDataChange }) {
       const res = await api.list.Cheques();
       const rows = res?.rows || [];
       onDataChange(rows); // update App.js state — survives navigation
-      showToast('Cheques refreshed from Google Sheet', 'success');
+      showToast('Cheques refreshed from database', 'success');
     } catch (e) {
       showToast('Could not refresh: ' + e.message, 'error');
     } finally { setSaving(false); }
@@ -525,7 +525,7 @@ function ChequesPage({ gasData, onDataChange }) {
       await api.createRow('Cheques', toSheetRow(formData));
       const res = await api.list.Cheques();
       onDataChange(res?.rows || []);
-      showToast('Cheque added to Google Sheet', 'success');
+      showToast('Cheque added to database', 'success');
       setShowAddModal(false);
     } catch (e) {
       showToast('Failed to add: ' + e.message, 'error');
@@ -539,7 +539,7 @@ function ChequesPage({ gasData, onDataChange }) {
       await api.upsertRow('Cheques', 'CHEQUE NO.', toSheetRow(formData));
       const res = await api.list.Cheques();
       onDataChange(res?.rows || []);
-      showToast('Cheque updated in Google Sheet', 'success');
+      showToast('Cheque updated in database', 'success');
       setEditRow(null);
     } catch (e) {
       showToast('Failed to update: ' + e.message, 'error');
@@ -582,7 +582,7 @@ function ChequesPage({ gasData, onDataChange }) {
       // Re-fetch from GAS to confirm
       const res = await api.list.Cheques();
       onDataChange(res?.rows || []);
-      showToast(`Imported ${toWrite.length} rows to Google Sheet`, 'success');
+      showToast(`Imported ${toWrite.length} rows to database`, 'success');
     } catch (e) {
       showToast('Import failed: ' + e.message, 'error');
     } finally { setSaving(false); }
@@ -603,7 +603,7 @@ function ChequesPage({ gasData, onDataChange }) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <div className="spinner" style={{width:'36px',height:'36px',borderWidth:'3px'}} />
-        <p className="text-sm text-gray-500">Loading cheques from Google Sheet…</p>
+        <p className="text-sm text-gray-500">Loading cheques from database…</p>
       </div>
     );
   }
@@ -625,7 +625,7 @@ function ChequesPage({ gasData, onDataChange }) {
             </button>
           ))}
           <ExportButton data={filtered} filename="Cheques" />
-          <button onClick={fetchCheques} disabled={saving} title="Refresh from Google Sheet"
+          <button onClick={fetchCheques} disabled={saving} title="Refresh from database"
             className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 p-2 rounded-lg transition-colors disabled:opacity-50">
             <svg className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -738,7 +738,7 @@ function ChequesPage({ gasData, onDataChange }) {
                   <ChqBar key={party} label={party} value={total} max={partyStats[0]?.total||1}
                     color={palette[i%palette.length]} formatted={`${INR.format(total)} · ${count}`} />
                 ))}
-                {partyStats.length===0 && <p className="text-xs text-gray-400 text-center py-6">No data in Google Sheet yet</p>}
+                {partyStats.length===0 && <p className="text-xs text-gray-400 text-center py-6">No data in database yet</p>}
               </div>
             </div>
           </div>
@@ -775,7 +775,7 @@ function ChequesPage({ gasData, onDataChange }) {
                 ))}
                 {data.length===0 && (
                   <div className="text-center py-8">
-                    <p className="text-xs text-gray-400">No data in the Google Sheet yet.</p>
+                    <p className="text-xs text-gray-400">No data in the database yet.</p>
                     <p className="text-xs text-gray-400 mt-1">Add a row in the sheet or use Import.</p>
                   </div>
                 )}
@@ -865,7 +865,7 @@ function ChequesPage({ gasData, onDataChange }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 <p className="text-sm font-medium">No cheques found</p>
-                <p className="text-xs mt-1">Adjust filters or use the ⟳ button to refresh from Google Sheet.</p>
+                <p className="text-xs mt-1">Adjust filters or use the refresh button to reload from database.</p>
               </div>
             )}
           </div>

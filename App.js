@@ -446,14 +446,14 @@ function Boot() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Connection Failed</h2>
-          <p className="text-sm text-gray-500">Could not reach the backend service.</p>
+          <p className="text-sm text-gray-500">Could not reach Supabase.</p>
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5 text-xs text-amber-900 space-y-1">
           <p className="font-semibold mb-1">Common fixes:</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>Redeploy GAS — <em>Execute as: Me, Access: Anyone</em></li>
-            <li>Verify the GAS URL in <code>index.html</code></li>
-            <li>Open the GAS URL directly to confirm it responds</li>
+            <li>Run the Supabase schema SQL first</li>
+            <li>Verify Supabase URL and publishable key in <code>index.html</code></li>
+            <li>Confirm <code>portal_rows</code> exists in Supabase</li>
           </ul>
         </div>
         <div className="flex gap-3">
