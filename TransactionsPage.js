@@ -485,9 +485,10 @@ const stored = (t.Category || '').trim();
    Main TransactionsPage Component
    ═══════════════════════════════════════════════════════════ */
 function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
-  const { useState, useMemo, useRef } = React;
+  const { useState, useMemo, useRef, useEffect } = React;
 
   const [tab, setTab] = useState('table');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState(null);
   const [filterYear, setFilterYear] = useState('');
@@ -512,6 +513,11 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
   const [importProgress, setImportProgress] = useState(0);
   const fileRef = useRef(null);
   data = useMemo(() => (data || []).map(applyVendorCategory), [data]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 180);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
   /* ── Helper: Get Indian Financial Year from date ── */
   function getIndianFY(dateStr) {
@@ -760,9 +766,9 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
   const hasBankCols = data.length > 0 && ('Narration' in data[0] || 'Deposit Amt' in data[0]);
 
   /* ── Clear all filters helper ── */
-  const hasActiveFilters = filterYear || filterMonth || typeFilter || search || fromDate || toDate || filterIndianFY;
+  const hasActiveFilters = filterYear || filterMonth || typeFilter || searchInput || search || fromDate || toDate || filterIndianFY;
   function clearAllFilters() {
-    setFilterYear(''); setFilterMonth(''); setTypeFilter(null); setSearch(''); setFromDate(''); setToDate(''); setFilterIndianFY('');
+    setFilterYear(''); setFilterMonth(''); setTypeFilter(null); setSearchInput(''); setSearch(''); setFromDate(''); setToDate(''); setFilterIndianFY('');
   }
 
   async function applyVendorConfig({ matchText, vendor, category }) {
@@ -815,13 +821,17 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
       {showVendorConfig && (
         <VendorConfigModal
           rules={VENDOR_CATEGORY_RULES}
+          chartOfAccounts={chartOfAccounts}
           uploading={uploading}
           onClose={() => setShowVendorConfig(false)}
           onApply={applyVendorConfig}
         />
       )}
 
-      {/* ── Summary Cards ── */}
+      
+{tab === 'table' && (
+  <>
+   {/* ── Summary Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div onClick={() => setTypeFilter(typeFilter==='credit'?null:'credit')}
           className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer transition-all ${typeFilter==='credit'?'ring-2 ring-emerald-500':'hover:shadow-md'}`}>
@@ -846,6 +856,8 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
           <p className="text-xs text-gray-400 mt-1">Latest closing balance</p>
         </div>
       </div>
+  </>
+)}
 
       {/* ── Tab bar + toolbar ── */}
       <div className="bg-white rounded-2xl shadow-sm">
@@ -933,7 +945,7 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
               )}
 
               {tab === 'table' && (
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
                   placeholder="Search…" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm" />
               )}
 
@@ -992,10 +1004,10 @@ function TransactionsPage({ data, isAdmin, onRefresh, chartOfAccounts }) {
                   <button onClick={() => setTypeFilter(null)} className="hover:opacity-70 ml-0.5">×</button>
                 </span>
               )}
-              {search && (
+              {(searchInput || search) && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-600 rounded-full text-xs font-medium">
-                  🔍 "{search}"
-                  <button onClick={() => setSearch('')} className="hover:text-gray-900 ml-0.5">×</button>
+                  🔍 "{searchInput || search}"
+                  <button onClick={() => { setSearchInput(''); setSearch(''); }} className="hover:text-gray-900 ml-0.5">×</button>
                 </span>
               )}
               {filterIndianFY && (
@@ -1578,12 +1590,21 @@ function ChequeReconciliation({ data }) {
   );
 }
 
-function VendorConfigModal({ rules, uploading, onClose, onApply }) {
-  const { useState } = React;
+function VendorConfigModal({ rules, chartOfAccounts, uploading, onClose, onApply }) {
+  const { useState, useMemo } = React;
   const [selected, setSelected] = useState('');
   const [matchText, setMatchText] = useState('');
   const [vendor, setVendor] = useState('');
   const [category, setCategory] = useState('');
+  const categoryOptions = useMemo(() => {
+    const options = new Set();
+    (chartOfAccounts || []).forEach(row => {
+      const name = row.Category || row.Account || row['Account Name'];
+      if (name) options.add(String(name));
+    });
+    rules.forEach(rule => options.add(rule.category));
+    return Array.from(options).sort((a, b) => a.localeCompare(b));
+  }, [chartOfAccounts, rules]);
 
   function chooseRule(value) {
     setSelected(value);
@@ -1634,8 +1655,12 @@ function VendorConfigModal({ rules, uploading, onClose, onApply }) {
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
               <input type="text" value={category} onChange={e => setCategory(e.target.value)}
+                list="vendor-config-category-options"
                 placeholder="Example: Secuirty"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
+              <datalist id="vendor-config-category-options">
+                {categoryOptions.map(name => <option key={name} value={name}/>)}
+              </datalist>
             </div>
           </div>
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
